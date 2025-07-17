@@ -1,0 +1,41 @@
+#pragma once
+
+#ifndef UDP_SERVER_LIB_H__
+#define UDP_SERVER_LIB_H__
+
+#include "../i_server.h"
+
+#include <system_error>
+#include <vector>
+#include <map>
+
+namespace net_connection_lib
+{
+
+class UdpServer final : public IServer
+{
+public:
+     UdpServer();
+     ~UdpServer();
+
+     virtual std::error_code Listen( const std::string& ip, uint16_t port ) override;
+
+     virtual std::error_code Accept( SocketId& id ) override;
+
+     virtual std::error_code Read( SocketId id, std::vector<uint8_t>& buff ) override;
+
+     virtual std::error_code Write( SocketId id, const std::vector<uint8_t>& buff ) override;
+
+private:
+     std::map<SocketId, int> openConnections_;
+
+private:
+     UdpServer( const UdpServer& ) = delete;
+     UdpServer( UdpServer&& ) = delete;
+     UdpServer& operator=( const UdpServer& ) = delete;
+     UdpServer& operator=( UdpServer&& ) = delete;
+};
+
+} // net_connection_lib
+
+#endif // UDP_SERVER_LIB_H__
