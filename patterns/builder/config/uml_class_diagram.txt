@@ -1,0 +1,55 @@
+@startuml
+
+hide empty members
+
+class Parser
+{
+     +Parser( DataMaker* builder )
+
+     +ReadFile()
+     +WriteFile()
+
+     -DataMaker* builder
+     -std::map<ParamType,std::string> data
+}
+
+class DataMaker
+{
+     virtual AddParam( std::string line )
+     virtual AddParam( ParamType, std::string )
+}
+
+class RawDataMaker
+{
+     AddParam( std::string line ) override
+     AddParam( ParamType, std::string ) override
+     std::map<ParamType,std::string> GetData()
+}
+
+class IniDataMaker
+{
+     AddParam( std::string line ) override
+     AddParam( ParamType, std::string ) override
+     std::map<ParamType,std::string> GetData()
+}
+
+class SnmpDataMaker
+{
+     AddParam( std::string line ) override
+     AddParam( ParamType, std::string ) override
+     std::map<ParamType,std::string> GetData()
+}
+
+Parser o-right-> DataMaker
+DataMaker <|-- RawDataMaker
+DataMaker <|-- IniDataMaker
+DataMaker <|-- SnmpDataMaker
+
+
+class Data
+
+RawDataMaker ..> Data
+IniDataMaker ..> Data
+SnmpDataMaker ..> Data
+
+@enduml
