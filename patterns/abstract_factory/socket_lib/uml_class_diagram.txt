@@ -1,0 +1,101 @@
+@startuml
+
+hide empty members
+
+class IConnectionFactory
+{
+     +virtual IClient* CreateClient()
+     +virtual IServer* CreateServer()
+}
+
+class TcpConnectionFactory
+{
+     +IClient* CreateClient() override
+     +IServer* CreateServer() override
+}
+
+class UdpConnectionFactory
+{
+     +IClient* CreateClient() override
+     +IServer* CreateServer() override
+}
+
+class RawConnectionFactory
+{
+     +IClient* CreateClient() override
+     +IServer* CreateServer() override
+}
+
+
+
+IConnectionFactory <|-- TcpConnectionFactory
+IConnectionFactory <|-- UdpConnectionFactory
+IConnectionFactory <|-- RawConnectionFactory
+
+
+
+class IClient
+{
+     +virtual std::error_code Connect()
+     +virtual std::error_code Read()
+     +virtual std::error_code Write()
+}
+
+class IServer
+{
+     +virtual std::error_code Listen()
+     +virtual std::error_code Accept()
+     +virtual std::error_code Read()
+     +virtual std::error_code Write()
+}
+
+
+
+TcpConnectionFactory ..> TcpClient
+UdpConnectionFactory ..> UdpClient
+RawConnectionFactory ..> RawClient
+TcpConnectionFactory ..> TcpServer
+UdpConnectionFactory ..> UdpServer
+RawConnectionFactory ..> RawServer
+
+
+
+class TcpClient
+{
+}
+
+class UdpClient
+{
+}
+
+class RawClient
+{
+}
+
+
+class TcpServer
+{
+}
+
+class UdpServer
+{
+}
+
+class RawServer
+{
+}
+
+IClient <|-- TcpClient
+IClient <|-- UdpClient
+IClient <|-- RawClient
+
+IServer <|-- TcpServer
+IServer <|-- UdpServer
+IServer <|-- RawServer
+
+class User
+User -down-> IConnectionFactory
+User -down-> IClient
+User -down-> IServer
+
+@enduml
