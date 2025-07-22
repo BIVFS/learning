@@ -7,6 +7,9 @@
 #include "i_client.h"
 #include "i_server.h"
 
+#include "i_protocol.h"
+#include "i_connection_params.h"
+
 namespace net_connection_lib
 {
 
@@ -24,8 +27,10 @@ public:
 
      virtual ~IConnectionFactory() = default;
 
-     virtual std::shared_ptr<IClient> CreateClient() = 0;
-     virtual std::shared_ptr<IServer> CreateServer() = 0;
+     virtual std::shared_ptr<IClient> CreateClient(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) = 0;
+     virtual std::shared_ptr<IServer> CreateServer(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) = 0;
 
 private:
      IConnectionFactory( const IConnectionFactory& ) = delete;

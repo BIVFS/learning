@@ -9,6 +9,8 @@
 #include "raw_client.h"
 #include "raw_server.h"
 
+#include "../i_protocol.h"
+
 #include <memory>
 #include <stdexcept>
 
@@ -19,15 +21,18 @@ class TcpConnectionFactory final : public IConnectionFactory
 {
 public:
      TcpConnectionFactory() = default;
+     ~TcpConnectionFactory() = default;
 
-     virtual std::shared_ptr<IClient> CreateClient() override
+     virtual std::shared_ptr<IClient> CreateClient(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) override
      {
-          return std::shared_ptr<TcpClient>();
+          return std::make_shared<TcpClient>( protocol, param );
      }
 
-     virtual std::shared_ptr<IServer> CreateServer() override
+     virtual std::shared_ptr<IServer> CreateServer(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) override
      {
-          return std::shared_ptr<TcpServer>();
+          return std::make_shared<TcpServer>( protocol, param );
      }
 };
 
@@ -35,15 +40,18 @@ class UdpConnectionFactory final : public IConnectionFactory
 {
 public:
      UdpConnectionFactory() = default;
+     ~UdpConnectionFactory() = default;
 
-     virtual std::shared_ptr<IClient> CreateClient() override
+     virtual std::shared_ptr<IClient> CreateClient(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) override
      {
-          return std::shared_ptr<UdpClient>();
+          return std::make_shared<UdpClient>( protocol, param );
      }
 
-     virtual std::shared_ptr<IServer> CreateServer() override
+     virtual std::shared_ptr<IServer> CreateServer(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) override
      {
-          return std::shared_ptr<UdpServer>();
+          return std::make_shared<UdpServer>( protocol, param );
      }
 };
 
@@ -51,15 +59,18 @@ class RawConnectionFactory final : public IConnectionFactory
 {
 public:
      RawConnectionFactory() = default;
+     ~RawConnectionFactory() = default;
 
-     virtual std::shared_ptr<IClient> CreateClient() override
+     virtual std::shared_ptr<IClient> CreateClient(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) override
      {
-          return std::shared_ptr<RawClient>();
+          return std::make_shared<RawClient>( protocol, param );
      }
 
-     virtual std::shared_ptr<IServer> CreateServer() override
+     virtual std::shared_ptr<IServer> CreateServer(
+          std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& param ) override
      {
-          return std::shared_ptr<RawServer>();
+          return std::make_shared<RawServer>( protocol, param );
      }
 };
 

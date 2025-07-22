@@ -1,10 +1,13 @@
 #include "udp_client.h"
 #include <system_error>
 
+#include "../i_connection_params.h"
+
 namespace net_connection_lib
 {
 
-UdpClient::UdpClient()
+UdpClient::UdpClient( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam )
+: IClient( protocol, connectionParam )
 {
 }
 

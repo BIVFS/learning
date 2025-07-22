@@ -7,7 +7,7 @@ CC=g++
 CFLAGS=-c -fPIC -std=c++14 -Wall -Wextra -pedantic -g -O0 -I. # -Werror
 
 LFLAGS =
-LIBDEP = 
+LIBDEP = -lz
 
 SOURCES=src/connection.cpp \
 	src/raw_client.cpp \
@@ -15,7 +15,9 @@ SOURCES=src/connection.cpp \
 	src/tcp_client.cpp \
 	src/tcp_server.cpp \
 	src/udp_client.cpp \
-	src/udp_server.cpp
+	src/udp_server.cpp \
+	src/simple_protocol.cpp \
+	src/prototypes/network_params.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 

@@ -1,9 +1,12 @@
 #include "raw_server.h"
 
+#include "../i_connection_params.h"
+
 namespace net_connection_lib
 {
 
-RawServer::RawServer()
+RawServer::RawServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam )
+: IServer( protocol, connectionParam )
 {
 }
 

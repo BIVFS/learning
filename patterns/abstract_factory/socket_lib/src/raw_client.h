@@ -9,13 +9,15 @@
 #include <string>
 #include <vector>
 
+#include "../i_connection_params.h"
+
 namespace net_connection_lib
 {
 
 class RawClient final : public IClient
 {
 public:
-     RawClient();
+     RawClient( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam );
      ~RawClient();
 
      virtual std::error_code Connect( const std::string& ip, uint16_t port ) override;

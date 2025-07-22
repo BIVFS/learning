@@ -9,13 +9,17 @@
 #include <string>
 #include <vector>
 
+#include <netinet/in.h>
+
+#include "../i_connection_params.h"
+
 namespace net_connection_lib
 {
 
 class TcpClient final : public IClient
 {
 public:
-     TcpClient();
+     explicit TcpClient( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam );
      ~TcpClient();
 
      virtual std::error_code Connect( const std::string& ip, uint16_t port ) override;
@@ -25,10 +29,21 @@ public:
      virtual std::error_code Write( const std::vector<uint8_t>& buff ) override;
 
 private:
+     inline bool IsEstablished() const { return ( -1 != socket_ ); }
+
+     std::error_code Select();
+
+     std::error_code ValidateData( const std::vector<uint8_t>& data );
+
+private:
+     TcpClient() = delete;
      TcpClient( const TcpClient& ) = delete;
      TcpClient( TcpClient&& ) = delete;
      TcpClient& operator=( const TcpClient& ) = delete;
      TcpClient& operator=( TcpClient&& ) = delete;
+
+private:
+     struct sockaddr_in address_;
 };
 
 } // namespace net_connection_lib

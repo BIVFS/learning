@@ -9,13 +9,15 @@
 #include <vector>
 #include <map>
 
+#include "../i_connection_params.h"
+
 namespace net_connection_lib
 {
 
 class UdpServer final : public IServer
 {
 public:
-     UdpServer();
+     UdpServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam );
      ~UdpServer();
 
      virtual std::error_code Listen( const std::string& ip, uint16_t port ) override;
