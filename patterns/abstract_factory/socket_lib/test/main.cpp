@@ -86,6 +86,7 @@ int main()
                auto connectParamsClient = netParams.CreateConnectionParamsPrototype( ncl::ConnectionParamSet::Default );
                while( !g_stop )
                {
+                    client1.reset();
                     client1 = connectionFactory->CreateClient( protocolClient, connectParamsClient );
                     if( !client1 )
                     {

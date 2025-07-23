@@ -31,6 +31,7 @@ public:
 private:
      inline bool IsEstablished() const { return ( -1 != socket_ ); }
 
+     // TODO Добавить делегировать опрос отдельному объекту
      std::error_code Select();
 
      std::error_code ValidateData( const std::vector<uint8_t>& data );

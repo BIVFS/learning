@@ -9,6 +9,7 @@
 #include <vector>
 #include <atomic>
 #include <memory>
+#include <mutex>
 #include <unistd.h>
 
 #include "i_protocol.h"
@@ -27,14 +28,16 @@ public:
      inline void Stop()
      {
           stop_ = true;
-          sleep( 1 );
+          while( hasActiveOperation_)
+          {
+               sleep( 1 );
+          }
+
           for( auto& it : openConnections_ )
           {
                close( it.second );
-               openConnections_.erase( it.first );
           }
-          close( socket_ );
-          socket_ = -1;
+          openConnections_.clear();
      };
 
      virtual std::error_code Listen( const std::string& ip, uint16_t port ) = 0;
@@ -53,11 +56,11 @@ private:
 
 protected:
      IServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam )
-          : socket_( -1 ), stop_( false ) { protocol_.swap( protocol ); connectionParam_.swap( connectionParam ); }
+          : stop_( false ), hasActiveOperation_( false ) { openConnections_[0] = -1; protocol_.swap( protocol ); connectionParam_.swap( connectionParam ); }
 
 protected:
-     int socket_;
      std::atomic_bool stop_;
+     std::atomic_bool hasActiveOperation_;
      std::map<SocketId, int> openConnections_;
 
      std::unique_ptr<IProtocol> protocol_;

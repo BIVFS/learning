@@ -31,14 +31,12 @@ public:
      virtual std::error_code Write( SocketId id, const std::vector<uint8_t>& buff ) override;
 
 private:
-     inline bool IsListen() const { return ( -1 != socket_ ); }
+     inline bool IsListen() const
+          { return ( -1 != openConnections_.at( 0 ) ); }
 
      std::error_code Select( SocketId id );
 
      std::error_code ValidateData( const std::vector<uint8_t>& data );
-
-private:
-     std::map<SocketId, int> openConnections_;
 
 private:
      TcpServer( const TcpServer& ) = delete;

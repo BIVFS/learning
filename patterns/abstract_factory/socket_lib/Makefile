@@ -4,7 +4,7 @@ TARGET=lib$(NAME).so
 
 CC=g++
 
-CFLAGS=-c -fPIC -std=c++14 -Wall -Wextra -pedantic -g -O0 -I. # -Werror
+CFLAGS=-c -fPIC -std=c++14 -Wall -Wextra -pedantic -g -O0 -I. -DDEBUG # -Werror
 
 LFLAGS =
 LIBDEP = -lz
