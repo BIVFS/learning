@@ -4,13 +4,17 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <memory>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <system_error>
 #include <unistd.h>
 #include <vector>
 #include <functional>
 #include <zlib.h>
+
+#include <arpa/inet.h>
+#include <netinet/in.h>
+#include <netinet/tcp.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include "../i_connection_params.h"
 
@@ -62,10 +66,12 @@ std::error_code TcpServer::Select( SocketId id )
      {
           while( !stop_ )
           {
+               errno = 0;
                const int rv = select( openConnections_[id] + 1, &readSet, 0, 0, &tv );
+               const int errnoLocal = errno;
                switch( rv )
                {
-                    case -1:  return { errno, std::system_category() };
+                    case -1:  return { errnoLocal, std::system_category() };
                     case 0:   continue;
                     default:  break;
                }
@@ -87,28 +93,49 @@ std::error_code TcpServer::Listen( const std::string& ip, uint16_t port )
      hasActiveOperation_ = true;
      RAII raii( [this](){ hasActiveOperation_ = false; } );
 
+     errno = 0;
      if( -1 == ( openConnections_[0] = socket( AF_INET, SOCK_STREAM, 0 ) ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
      printf( "%s[%u]: Open main socket: %d\n", __FILE__, __LINE__, openConnections_[0] );
 #endif // DEBUG
+
+     std::string iface = connectionParam_->NetIface();
+     errno = 0;
+     if( 0 != setsockopt( openConnections_[0], SOL_SOCKET, SO_BINDTODEVICE, iface.c_str(), iface.size() + 1 ) )
+     {
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
+     }
+     int reuseAddr = 1;
+     errno = 0;
+     if( 0 != setsockopt( openConnections_[0], SOL_SOCKET, SO_REUSEADDR, &reuseAddr, sizeof( reuseAddr ) ) )
+     {
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
+     }
+
      address_.sin_family = AF_INET;
      address_.sin_addr.s_addr = INADDR_ANY;
      address_.sin_port = htons( port );
 
+     errno = 0;
      if( -1 == bind( openConnections_[0], reinterpret_cast<struct sockaddr*>( &address_ ), sizeof( address_ ) ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
-
 #ifdef DEBUG
      printf( "%s[%u]: Listen on socket: %d, ip: %s, port: %u\n", __FILE__, __LINE__, openConnections_[0], ip.c_str(), port );
 #endif // DEBUG
+     errno = 0;
      if( -1 == listen( openConnections_[0], connectionParam_->GetMaxConnection() ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
 
      return {};
@@ -131,14 +158,75 @@ std::error_code TcpServer::Accept( SocketId& id )
 #endif // DEBUG
      socklen_t addrLen = sizeof( address_ );
      int newSocket = -1;
+     errno = 0;
      if( -1 == ( newSocket = accept( openConnections_[0],
           reinterpret_cast<struct sockaddr*>( &address_ ), reinterpret_cast<socklen_t*>( &addrLen ) ) ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
      printf( "%s[%u]: Accepted connection\n", __FILE__, __LINE__ );
 #endif // DEBUG
+
+     // Параметры для сокета, на котором подключен клиент
+     int clientKeepalive = connectionParam_->GetSocketKeepAlive();
+     int clientKeepidle  = connectionParam_->GetSocketKeepIdle();
+     int clientKeepcnt   = connectionParam_->GetSocketKeepCnt();
+     int clientKeepintvl = connectionParam_->GetSocketKeepIntvl();
+     errno = 0;
+     if( 0 != setsockopt( newSocket, SOL_SOCKET, SO_KEEPALIVE, &clientKeepalive, sizeof( clientKeepalive ) ) )
+     {
+          //TODO проверить
+          const int errnoLocal = errno;
+          printf( "Set SO_KEEPALIVE opt failed, errno: %d (%s)\n", errnoLocal, std::strerror( errnoLocal ) );
+          return { errnoLocal, std::system_category() };
+     }
+     errno = 0;
+     if( 0 != setsockopt( newSocket, IPPROTO_TCP, TCP_KEEPIDLE, &clientKeepidle, sizeof( clientKeepidle ) ) )
+     {
+          //TODO проверить
+          const int errnoLocal = errno;
+          printf( "Set TCP_KEEPIDLE opt failed, errno: %d (%s)\n", errnoLocal, std::strerror( errnoLocal ) );
+          return { errnoLocal, std::system_category() };
+     }
+     errno = 0;
+     if( 0 != setsockopt( newSocket, IPPROTO_TCP, TCP_KEEPCNT, &clientKeepcnt, sizeof( clientKeepcnt ) ) )
+     {
+          //TODO проверить
+          const int errnoLocal = errno;
+          printf( "Set TCP_KEEPCNT opt failed, errno: %d (%s)\n", errnoLocal, std::strerror( errnoLocal ) );
+          return { errnoLocal, std::system_category() };
+     }
+     errno = 0;
+     if( 0 != setsockopt( newSocket, IPPROTO_TCP, TCP_KEEPINTVL, &clientKeepintvl, sizeof( clientKeepintvl ) ) )
+     {
+          //TODO проверить
+          const int errnoLocal = errno;
+          printf( "Set TCP_KEEPINTVL opt failed, errno: %d (%s)\n", errnoLocal, std::strerror( errnoLocal ) );
+          return { errnoLocal, std::system_category() };
+     }
+
+     struct timeval timeout;
+     timeout.tv_sec = connectionParam_->GetSocketRwTimeout();
+     timeout.tv_usec = 0;
+     errno = 0;
+     if( 0 != setsockopt( newSocket, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof( timeout ) ) )
+     {
+          //TODO проверить
+          const int errnoLocal = errno;
+          printf( "Set SO_RCVTIMEO opt failed, errno: %d (%s)\n", errnoLocal, std::strerror( errnoLocal ) );
+          return { errnoLocal, std::system_category() };
+     }
+     errno = 0;
+     if( 0 != setsockopt( newSocket, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof( timeout ) ) )
+     {
+          //TODO проверить
+          const int errnoLocal = errno;
+          printf( "Set SO_SNDTIMEO opt failed, errno: %d (%s)\n", errnoLocal, std::strerror( errnoLocal ) );
+          return { errnoLocal, std::system_category() };
+     }
+
      std::time_t timestamp = std::time( nullptr );
 
      std::vector<uint8_t> seed( sizeof( newSocket ) + sizeof( timestamp) );
@@ -188,10 +276,12 @@ std::error_code TcpServer::Read( SocketId id, std::vector<uint8_t>& buff )
 #ifdef DEBUG
      printf( "%s[%u]: Has data to read. Try to receive data from socket %d\n", __FILE__, __LINE__, openConnections_[id] );
 #endif // DEBUG
+     errno = 0;
      if( -1 == recvfrom( openConnections_[ id ],
           header.data(), header.size(), 0, reinterpret_cast<struct sockaddr*>( &srcAddress ), &addrLen ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
      printf( "%s[%u]: Header was read, size: %lu\n", __FILE__, __LINE__, header.size() );
@@ -214,10 +304,12 @@ std::error_code TcpServer::Read( SocketId id, std::vector<uint8_t>& buff )
                                                                            __FILE__, __LINE__, openConnections_[id] );
 #endif // DEBUG
      std::vector<uint8_t> payload( pldSize );
+     errno = 0;
      if( -1 == recvfrom( openConnections_[ id ],
           payload.data(), payload.size(), 0, reinterpret_cast<struct sockaddr*>( &srcAddress ), &addrLen ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
      printf( "%s[%u]: Payload was read\n", __FILE__, __LINE__ );
@@ -256,10 +348,12 @@ std::error_code TcpServer::Write( SocketId id, const std::vector<uint8_t>& buff 
      }
 
      socklen_t addrLen = sizeof( address_ );
+     errno = 0;
      if( -1 == sendto( openConnections_[ id ],
           dataToSend.data(), dataToSend.size(), 0, reinterpret_cast<const struct sockaddr*>( &address_ ), addrLen ) )
      {
-          return { errno, std::system_category() };
+          const int errnoLocal = errno;
+          return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
      printf( "%s[%u]: Data was send\n", __FILE__, __LINE__ );

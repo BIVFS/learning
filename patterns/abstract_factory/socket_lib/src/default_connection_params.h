@@ -14,16 +14,26 @@ public:
      explicit DefaultConnectionParam() = default;
      ~DefaultConnectionParam() = default;
 
-     virtual inline size_t GetMaxConnection() override { return 10; }
+     virtual size_t GetMaxConnection() override;
 
-     virtual inline size_t GetConnectTimeout() override { return 1; }
-     virtual inline size_t GetAcceptTimeout() override { return 1; }
+     virtual size_t GetConnectTimeout() override;
+     virtual size_t GetAcceptTimeout() override;
 
-     virtual inline size_t GetReadTimeout() override { return 1; }
-     virtual inline size_t GetWriteTimeout() override { return 1; }
+     virtual size_t GetReadTimeout() override;
+     virtual size_t GetWriteTimeout() override;
 
-     virtual inline std::error_code Clone() override { return {}; }
-     virtual inline std::error_code Initialize() override { return {}; }
+     virtual int GetSocketKeepAlive() override;
+     virtual int GetSocketKeepIdle() override;
+     virtual int GetSocketKeepCnt() override;
+     virtual int GetSocketKeepIntvl() override;
+     virtual int GetSocketMaxSrvConnection() override;
+     virtual int GetSocketRwTimeout() override;
+     virtual int GetSocketMaxRwAttempts() override;
+
+     virtual std::string NetIface() override;
+
+     virtual std::error_code Clone() override;
+     virtual std::error_code Initialize() override;
 };
 
 } // namespace net_connection_lib
