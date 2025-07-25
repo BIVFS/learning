@@ -5,11 +5,9 @@
 
 #include <system_error>
 #include <map>
-#include <string>
 #include <vector>
 #include <atomic>
 #include <memory>
-#include <mutex>
 #include <unistd.h>
 
 #include "i_protocol.h"
@@ -25,28 +23,30 @@ public:
 public:
      virtual ~IServer() { Stop(); };
 
-     inline void Stop()
+     virtual inline void Stop() noexcept
+     try
      {
           stop_ = true;
-          while( hasActiveOperation_)
-          {
-               sleep( 1 );
-          }
 
           for( auto& it : openConnections_ )
           {
                close( it.second );
           }
           openConnections_.clear();
-     };
+     }
+     catch( ... )
+     {
+     }
 
-     virtual std::error_code Listen( const std::string& ip, uint16_t port ) = 0;
+     virtual std::error_code Listen() noexcept = 0;
 
-     virtual std::error_code Accept( SocketId& id ) = 0;
+     virtual std::error_code Accept( SocketId& id ) noexcept = 0;
 
-     virtual std::error_code Read( SocketId id, std::vector<uint8_t>& buff ) = 0;
+     virtual std::error_code Close( const SocketId& id ) noexcept = 0;
 
-     virtual std::error_code Write( SocketId id, const std::vector<uint8_t>& buff ) = 0;
+     virtual std::error_code Read( const SocketId id, std::vector<uint8_t>& buff ) noexcept = 0;
+
+     virtual std::error_code Write( const SocketId id, const std::vector<uint8_t>& buff ) noexcept = 0;
 
 private:
      IServer( const IServer& ) = delete;
@@ -56,11 +56,10 @@ private:
 
 protected:
      IServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam )
-          : stop_( false ), hasActiveOperation_( false ) { openConnections_[0] = -1; protocol_.swap( protocol ); connectionParam_.swap( connectionParam ); }
+          : stop_( false ) { openConnections_[0] = -1; protocol_.swap( protocol ); connectionParam_.swap( connectionParam ); }
 
 protected:
      std::atomic_bool stop_;
-     std::atomic_bool hasActiveOperation_;
      std::map<SocketId, int> openConnections_;
 
      std::unique_ptr<IProtocol> protocol_;

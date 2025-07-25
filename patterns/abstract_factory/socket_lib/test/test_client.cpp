@@ -37,11 +37,10 @@ catch( ... )
 {
 }
 
-std::error_code Client::Start( const std::string& ip, uint16_t port ) noexcept
+std::error_code Client::Start() noexcept
 try
 {
-     //TODO адрес и порт можно прокинуть через параметры соединения
-     process_ = std::thread( &Client::ConnectProcess, this, std::cref( ip ), port );
+     process_ = std::thread( &Client::ConnectProcess, this );
 
      return {};
 }
@@ -69,10 +68,10 @@ catch( ... )
      std::cerr << __FILE__ << ":" << __LINE__ << "-" << "Catch exception" << std::endl;
 }
 
-void Client::ConnectProcess( const std::string& ip, uint16_t port ) noexcept
+void Client::ConnectProcess() noexcept
 try
 {
-     if( auto ec = client_->Connect( ip, port ) )
+     if( auto ec = client_->Connect() )
      {
           std::cerr << "Client: " << ec.message() << std::endl;
           return;

@@ -15,7 +15,7 @@ UdpClient::~UdpClient()
 {
 }
 
-std::error_code UdpClient::Connect( const std::string& ip, uint16_t port )
+std::error_code UdpClient::Connect()
 {
      return std::make_error_code( std::errc::not_supported );
 }

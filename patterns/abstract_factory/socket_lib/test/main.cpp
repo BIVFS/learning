@@ -15,7 +15,7 @@ int main( int argc, char** argv )
      if( 0 == strcmp( argv[1], "--server" ) )
      {
           my_server::Server server;
-          server.Start( "127.0.0.1", 5555 );
+          server.Start();
 
           int var = 0;
           std::cin >> var;
@@ -25,7 +25,7 @@ int main( int argc, char** argv )
      else if( 0 == strcmp( argv[1], "--client" ) )
      {
           my_client::Client client;
-          client.Start( "127.0.0.1", 5555 );
+          client.Start();
 
           int var = 0;
           std::cin >> var;

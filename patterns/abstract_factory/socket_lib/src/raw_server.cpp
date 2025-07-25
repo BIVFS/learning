@@ -14,25 +14,29 @@ RawServer::~RawServer()
 {
 }
 
-std::error_code RawServer::Listen( const std::string& ip, uint16_t port )
+std::error_code RawServer::Listen() noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
-std::error_code RawServer::Accept( SocketId& id )
+std::error_code RawServer::Accept( SocketId& id ) noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
-std::error_code RawServer::Read( SocketId id, std::vector<uint8_t>& buff )
+std::error_code RawServer::Close( const SocketId& id ) noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
-std::error_code RawServer::Write( SocketId id, const std::vector<uint8_t>& buff )
+std::error_code RawServer::Read( const SocketId id, std::vector<uint8_t>& buff ) noexcept
+{
+     return std::make_error_code( std::errc::not_supported );
+}
+
+std::error_code RawServer::Write( const SocketId id, const std::vector<uint8_t>& buff ) noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
 } // net_connection_lib
-

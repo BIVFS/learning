@@ -21,14 +21,16 @@ public:
      explicit Server();
      ~Server();
 
-     std::error_code Start( const std::string& ip, uint16_t port ) noexcept;
+     std::error_code Start() noexcept;
      void Stop() noexcept;
 private:
      void AcceptProcess() noexcept;
+     void ClientProcess( ncl::IServer::SocketId id ) noexcept;
 private:
      std::atomic_bool stop_;
      std::shared_ptr<ncl::IServer> server_;
      std::thread acceptProcess_;
+     std::map<ncl::IServer::SocketId,std::unique_ptr<std::thread> > clientProcess_;
 };
 
 } // namespace my_server

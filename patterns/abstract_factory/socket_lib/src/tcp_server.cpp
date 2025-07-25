@@ -4,7 +4,9 @@
 #include <cstring>
 #include <arpa/inet.h>
 #include <memory>
+#include <mutex>
 #include <system_error>
+#include <tuple>
 #include <unistd.h>
 #include <vector>
 #include <functional>
@@ -23,6 +25,7 @@ namespace net_connection_lib
 
 namespace
 {
+     struct sockaddr_in srcAddress;
 
 class RAII final
 {
@@ -50,69 +53,44 @@ TcpServer::~TcpServer()
 {
 }
 
-std::error_code TcpServer::Select( SocketId id )
+void TcpServer::Stop() noexcept
+try
 {
-     if( !IsListen() && openConnections_.end() != openConnections_.find( id ) )
-     {
-          return std::make_error_code( std::errc::bad_file_descriptor );
-     }
-
-     struct timeval tv{ 1, 0 };
-     fd_set readSet;
-
-     FD_ZERO( &readSet );
-     FD_SET( openConnections_[id], &readSet);
-
-     {
-          while( !stop_ )
-          {
-               errno = 0;
-               const int rv = select( openConnections_[id] + 1, &readSet, 0, 0, &tv );
-               const int errnoLocal = errno;
-               switch( rv )
-               {
-                    case -1:  return { errnoLocal, std::system_category() };
-                    case 0:   continue;
-                    default:  break;
-               }
-
-               break;
-          }
-     }
-
-     if( stop_ )
-     {
-          return std::make_error_code( std::errc::operation_canceled );
-     }
-
-     return {};
+     std::lock_guard<std::mutex> lock( connectionMgmt_ );
+     IServer::Stop();
+}
+catch( ... )
+{
 }
 
-std::error_code TcpServer::Listen( const std::string& ip, uint16_t port )
+std::error_code TcpServer::Listen() noexcept
+try
 {
-     hasActiveOperation_ = true;
-     RAII raii( [this](){ hasActiveOperation_ = false; } );
+     int fd = -1;
+     bool needToClose = true;
 
      errno = 0;
-     if( -1 == ( openConnections_[0] = socket( AF_INET, SOCK_STREAM, 0 ) ) )
+     if( -1 == ( fd = socket( AF_INET, SOCK_STREAM, 0 ) ) )
      {
           const int errnoLocal = errno;
           return { errnoLocal, std::system_category() };
      }
+     RAII raii( [&needToClose,fd](){ if( needToClose ) { close( fd ); } } );
+
 #ifdef DEBUG
-     printf( "%s[%u]: Open main socket: %d\n", __FILE__, __LINE__, openConnections_[0] );
+     printf( "%s[%u]: Open main socket: %d\n", __FILE__, __LINE__, fd );
 #endif // DEBUG
 
-     std::string iface = connectionParam_->NetIface();
+     std::string iface = connectionParam_->GetNetIface();
      errno = 0;
-     if( 0 != setsockopt( openConnections_[0], SOL_SOCKET, SO_BINDTODEVICE, iface.c_str(), iface.size() + 1 ) )
+     if( 0 != setsockopt( fd, SOL_SOCKET, SO_BINDTODEVICE, iface.c_str(), iface.size() + 1 ) )
      {
           const int errnoLocal = errno;
           return { errnoLocal, std::system_category() };
      }
      int reuseAddr = 1;
      errno = 0;
-     if( 0 != setsockopt( openConnections_[0], SOL_SOCKET, SO_REUSEADDR, &reuseAddr, sizeof( reuseAddr ) ) )
+     if( 0 != setsockopt( fd, SOL_SOCKET, SO_REUSEADDR, &reuseAddr, sizeof( reuseAddr ) ) )
      {
           const int errnoLocal = errno;
           return { errnoLocal, std::system_category() };
@@ -120,36 +98,51 @@ std::error_code TcpServer::Listen( const std::string& ip, uint16_t port )
 
      address_.sin_family = AF_INET;
      address_.sin_addr.s_addr = INADDR_ANY;
-     address_.sin_port = htons( port );
+     address_.sin_port = htons( connectionParam_->GetPort() );
+     const std::string ip( connectionParam_->GetIP() );
 
      errno = 0;
-     if( -1 == bind( openConnections_[0], reinterpret_cast<struct sockaddr*>( &address_ ), sizeof( address_ ) ) )
+     if( -1 == bind( fd, reinterpret_cast<struct sockaddr*>( &address_ ), sizeof( address_ ) ) )
      {
           const int errnoLocal = errno;
           return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
-     printf( "%s[%u]: Listen on socket: %d, ip: %s, port: %u\n", __FILE__, __LINE__, openConnections_[0], ip.c_str(), port );
+     printf( "%s[%u]: Listen on socket: %d, ip: %s, port: %u\n", __FILE__, __LINE__,
+                                        fd, ip.c_str(), connectionParam_->GetPort() );
 #endif // DEBUG
      errno = 0;
-     if( -1 == listen( openConnections_[0], connectionParam_->GetMaxConnection() ) )
+     if( -1 == listen( fd, connectionParam_->GetMaxConnection() ) )
      {
           const int errnoLocal = errno;
           return { errnoLocal, std::system_category() };
      }
+
+     std::lock_guard<std::mutex> lock( connectionMgmt_ );
+     openConnections_[0] = fd;
+
+     needToClose = false;
 
      return {};
 }
-
-std::error_code TcpServer::Accept( SocketId& id )
+catch( ... )
 {
-     hasActiveOperation_ = true;
-     RAII raii( [this](){ hasActiveOperation_ = false; } );
+     return std::make_error_code( std::errc::interrupted );
+}
+
+std::error_code TcpServer::Accept( SocketId& id ) noexcept
+try
+{
+     int fd = -1;
+     if( auto ec = GetSocketById( 0, fd ) )
+     {
+          return ec;
+     }
 
 #ifdef DEBUG
-     printf( "%s[%u]: Wait connection on socket: %d\n", __FILE__, __LINE__, openConnections_[0] );
+     printf( "%s[%u]: Wait connection on socket: %d\n", __FILE__, __LINE__, fd );
 #endif // DEBUG
-     if( auto ec = Select( 0 ) )
+     if( auto ec = Select( fd ) )
      {
           return ec;
      }
@@ -159,7 +152,7 @@ std::error_code TcpServer::Accept( SocketId& id )
      socklen_t addrLen = sizeof( address_ );
      int newSocket = -1;
      errno = 0;
-     if( -1 == ( newSocket = accept( openConnections_[0],
+     if( -1 == ( newSocket = accept( fd,
           reinterpret_cast<struct sockaddr*>( &address_ ), reinterpret_cast<socklen_t*>( &addrLen ) ) ) )
      {
           const int errnoLocal = errno;
@@ -241,6 +234,7 @@ std::error_code TcpServer::Accept( SocketId& id )
      }
 
      {
+          std::lock_guard<std::mutex> lock( connectionMgmt_ );
           openConnections_[crc] = newSocket;
      }
 
@@ -250,34 +244,64 @@ std::error_code TcpServer::Accept( SocketId& id )
 #endif // DEBUG
      return {};
 }
-
-std::error_code TcpServer::Read( SocketId id, std::vector<uint8_t>& buff )
+catch( ... )
 {
-     hasActiveOperation_ = true;
-     RAII raii( [this](){ hasActiveOperation_ = false; } );
+     return std::make_error_code( std::errc::interrupted );
+}
 
-     if( !IsListen() && openConnections_.end() != openConnections_.find( id ) )
+std::error_code TcpServer::Close( const SocketId& id ) noexcept
+try
+{
+     if( 0 == id )
      {
           return std::make_error_code( std::errc::bad_file_descriptor );
      }
 
-#ifdef DEBUG
-     printf( "%s[%u]: Wait data to read on socket %d (id = %u)\n", __FILE__, __LINE__, openConnections_[id], id );
-#endif // DEBUG
+     std::lock_guard<std::mutex> lock( connectionMgmt_ );
 
-     if( auto ec = Select( id ) )
+     auto& fd = openConnections_.at( id );
+
+     // 1. Сначала сохраняем значение сокета
+     // 2. Потом трем его в хранилище, чтобы новых операций на сокете не было
+     // 3. Закрываем сокет по сохраненному значению
+     const int fdVal = fd;    // 1
+     fd = -1;                 // 2
+     close( fdVal );          // 3
+
+     return {};
+}
+catch( ... )
+{
+     // Если летит исключение, значит не нашли сокет
+     return std::make_error_code( std::errc::bad_file_descriptor );
+}
+
+std::error_code TcpServer::Read( const SocketId id, std::vector<uint8_t>& buff ) noexcept
+try
+{
+     int fd = -1;
+     if( auto ec = GetSocketById( id, fd ) )
      {
           return ec;
      }
-     struct sockaddr_in srcAddress;
+
+#ifdef DEBUG
+     printf( "%s[%u]: Wait data to read on socket %d (id = %u)\n", __FILE__, __LINE__, fd, id );
+#endif // DEBUG
+
+     if( auto ec = Select( fd ) )
+     {
+          return ec;
+     }
+     //struct sockaddr_in srcAddress;
      socklen_t addrLen = sizeof( srcAddress );
 
      std::vector<uint8_t> header( protocol_->GetHeaderSize() );
 #ifdef DEBUG
-     printf( "%s[%u]: Has data to read. Try to receive data from socket %d\n", __FILE__, __LINE__, openConnections_[id] );
+     printf( "%s[%u]: Has data to read. Try to receive data from socket %d\n", __FILE__, __LINE__, fd );
 #endif // DEBUG
      errno = 0;
-     if( -1 == recvfrom( openConnections_[ id ],
+     if( -1 == recvfrom( fd,
           header.data(), header.size(), 0, reinterpret_cast<struct sockaddr*>( &srcAddress ), &addrLen ) )
      {
           const int errnoLocal = errno;
@@ -295,17 +319,16 @@ std::error_code TcpServer::Read( SocketId id, std::vector<uint8_t>& buff )
      printf( "%s[%u]: Payload size: %lu\n", __FILE__, __LINE__, pldSize );
 #endif // DEBUG
 
-     if( auto ec = Select( id ) )
+     if( auto ec = Select( fd ) )
      {
           return ec;
      }
 #ifdef DEBUG
-     printf( "%s[%u]: Has data to read after header. Try to receive data from socket %d\n",
-                                                                           __FILE__, __LINE__, openConnections_[id] );
+     printf( "%s[%u]: Has data to read after header. Try to receive data from socket %d\n", __FILE__, __LINE__, fd );
 #endif // DEBUG
      std::vector<uint8_t> payload( pldSize );
      errno = 0;
-     if( -1 == recvfrom( openConnections_[ id ],
+     if( -1 == recvfrom( fd,
           payload.data(), payload.size(), 0, reinterpret_cast<struct sockaddr*>( &srcAddress ), &addrLen ) )
      {
           const int errnoLocal = errno;
@@ -321,18 +344,21 @@ std::error_code TcpServer::Read( SocketId id, std::vector<uint8_t>& buff )
 
      return {};
 }
-
-std::error_code TcpServer::Write( SocketId id, const std::vector<uint8_t>& buff )
+catch( ... )
 {
-     hasActiveOperation_ = true;
-     RAII raii( [this](){ hasActiveOperation_ = false; } );
+     return std::make_error_code( std::errc::interrupted );
+}
 
+std::error_code TcpServer::Write( const SocketId id, const std::vector<uint8_t>& buff ) noexcept
+try
+{
 #ifdef DEBUG
      printf( "%s[%u]: Try to write data, size: %lu\n", __FILE__, __LINE__, buff.size() );
 #endif // DEBUG
-     if( !IsListen() && openConnections_.end() != openConnections_.find( id ) )
+     int fd = -1;
+     if( auto ec = GetSocketById( id, fd ) )
      {
-          return std::make_error_code( std::errc::bad_file_descriptor );
+          return ec;
      }
 
      std::vector<uint8_t> dataToSend( protocol_->GetHeaderSize() + buff.size() );
@@ -349,7 +375,7 @@ std::error_code TcpServer::Write( SocketId id, const std::vector<uint8_t>& buff 
 
      socklen_t addrLen = sizeof( address_ );
      errno = 0;
-     if( -1 == sendto( openConnections_[ id ],
+     if( -1 == sendto( fd,
           dataToSend.data(), dataToSend.size(), 0, reinterpret_cast<const struct sockaddr*>( &address_ ), addrLen ) )
      {
           const int errnoLocal = errno;
@@ -360,8 +386,12 @@ std::error_code TcpServer::Write( SocketId id, const std::vector<uint8_t>& buff 
 #endif // DEBUG
      return {};
 }
+catch( ... )
+{
+     return std::make_error_code( std::errc::interrupted );
+}
 
-std::error_code TcpServer::ValidateData( const std::vector<uint8_t>& data )
+std::error_code TcpServer::ValidateData( const std::vector<uint8_t>& data ) const
 {
 #ifdef DEBUG
      printf( "%s[%u]: Packet to validate (size = %lu):\n", __FILE__, __LINE__, data.size() );
@@ -387,6 +417,89 @@ std::error_code TcpServer::ValidateData( const std::vector<uint8_t>& data )
      }
 
      return {};
+}
+
+std::error_code TcpServer::Select( const int fd ) const
+{
+     struct timeval tv{ 1, 0 };
+     fd_set readSet;
+     {
+          while( !stop_ )
+          {
+               // Особенность select с его наборами дескрипторов в том, что при вызове select в наборах что-то
+               // изменяется и при повторном select нужно создавать инициализировать их заново
+               FD_ZERO( &readSet );
+               FD_SET( fd, &readSet );
+
+               errno = 0;
+               const int rv = select( fd + 1, &readSet, 0, 0, &tv );
+               const int errnoLocal = errno;
+               switch( rv )
+               {
+                    case -1:  return { errnoLocal, std::system_category() };
+                    case 0:   continue;
+                    default:  break;
+               }
+
+               break;
+          }
+     }
+
+     if( stop_ )
+     {
+          return std::make_error_code( std::errc::operation_canceled );
+     }
+
+     return {};
+}
+
+std::error_code TcpServer::CheckConnection( const SocketId id, bool storeLock = true )
+{
+     std::unique_lock<std::mutex> lock( connectionMgmt_, std::defer_lock );
+     if( storeLock )
+     {
+          lock.lock();
+     }
+
+     if( !IsListen() )
+     {
+          return std::make_error_code( std::errc::bad_file_descriptor );
+     }
+
+     try
+     {
+          auto& fd = openConnections_.at( id );
+          if( 0 > fd )
+          {
+               openConnections_.erase( id );
+               return std::make_error_code( std::errc::connection_reset );
+          }
+     }
+     catch( ... )
+     {
+          return std::make_error_code( std::errc::bad_file_descriptor );
+     }
+
+     return {};
+}
+
+std::error_code TcpServer::GetSocketById( const SocketId id, int& fd )
+try
+{
+     std::lock_guard<std::mutex> lock( connectionMgmt_ );
+
+     fd = -1;
+     if( auto ec = CheckConnection( id, false ) )
+     {
+          return ec;
+     }
+     fd = openConnections_.at( id );
+
+     return {};
+}
+catch( ... )
+{
+     return std::make_error_code( std::errc::bad_file_descriptor );
 }
 
 } // net_connection_lib

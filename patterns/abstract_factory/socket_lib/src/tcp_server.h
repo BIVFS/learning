@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #ifndef TCP_SERVER_LIB_H__
 #define TCP_SERVER_LIB_H__
 
@@ -8,6 +9,8 @@
 #include <system_error>
 #include <vector>
 #include <map>
+#include <mutex>
+#include <list>
 
 #include <netinet/in.h>
 
@@ -22,21 +25,29 @@ public:
      explicit TcpServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam );
      ~TcpServer();
 
-     virtual std::error_code Listen( const std::string& ip, uint16_t port ) override;
+     virtual void Stop() noexcept override;
 
-     virtual std::error_code Accept( SocketId& id ) override;
+     virtual std::error_code Listen() noexcept override;
 
-     virtual std::error_code Read( SocketId id, std::vector<uint8_t>& buff ) override;
+     virtual std::error_code Accept( SocketId& id ) noexcept override;
 
-     virtual std::error_code Write( SocketId id, const std::vector<uint8_t>& buff ) override;
+     virtual std::error_code Close( const SocketId& id ) noexcept override;
+
+     virtual std::error_code Read( const SocketId id, std::vector<uint8_t>& buff ) noexcept override;
+
+     virtual std::error_code Write( const SocketId id, const std::vector<uint8_t>& buff ) noexcept override;
 
 private:
      inline bool IsListen() const
           { return ( -1 != openConnections_.at( 0 ) ); }
 
-     std::error_code Select( SocketId id );
+     std::error_code GetSocketById( const SocketId id, int& fd );
 
-     std::error_code ValidateData( const std::vector<uint8_t>& data );
+     std::error_code CheckConnection( const SocketId id, bool storeLock );
+
+     std::error_code Select( const int fd ) const;
+
+     std::error_code ValidateData( const std::vector<uint8_t>& data ) const;
 
 private:
      TcpServer( const TcpServer& ) = delete;
@@ -46,6 +57,8 @@ private:
 
 private:
      struct sockaddr_in address_;
+
+     std::mutex connectionMgmt_;
 };
 
 } // net_connection_lib

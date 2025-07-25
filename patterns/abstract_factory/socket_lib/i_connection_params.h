@@ -31,7 +31,9 @@ public:
      virtual int GetSocketRwTimeout() = 0;        // Таймаут сокета на операции чтения/записи
      virtual int GetSocketMaxRwAttempts() = 0;    // Лимит ошибок при чтении/записи
 
-     virtual std::string NetIface() = 0;
+     virtual std::string GetIP() = 0;
+     virtual uint16_t GetPort() = 0;
+     virtual std::string GetNetIface() = 0;
 
      virtual std::error_code Clone() = 0;
      virtual std::error_code Initialize() = 0;

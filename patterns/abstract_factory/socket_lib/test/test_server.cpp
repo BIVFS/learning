@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <memory>
 #include <numeric>
 
 #include "../i_connection.h"
@@ -36,10 +37,10 @@ catch( ... )
 {
 }
 
-std::error_code Server::Start( const std::string& ip, uint16_t port ) noexcept
+std::error_code Server::Start() noexcept
 try
 {
-     if( auto ec = server_->Listen( ip, port ) ) //TODO адрес и порт можно прокинуть через параметры соединения
+     if( auto ec = server_->Listen() )
      {
           return ec;
      }
@@ -66,6 +67,14 @@ try
      {
           acceptProcess_.join();
      }
+
+     for( auto& it : clientProcess_ )
+     {
+          if( it.second && it.second->joinable() )
+          {
+               it.second->join();
+          }
+     }
 }
 catch( ... )
 {
@@ -84,11 +93,24 @@ try
                return;
           }
 
+          clientProcess_[id] = std::make_unique<std::thread>( &Server::ClientProcess, this, id );
+     }
+}
+catch( ... )
+{
+     std::cerr << __FILE__ << ":" << __LINE__ << "-" << "Catch exception" << std::endl;
+}
+
+void Server::ClientProcess( ncl::IServer::SocketId id ) noexcept
+try
+{
+     while( !stop_ )
+     {
           std::vector<uint8_t> buff( 10 );
           if( auto ec = server_->Read( id, buff ) )
           {
                std::cerr << "Server: " << ec.message() << std::endl;
-               return;
+               break;
           }
 
           std::cout << "Server receive: ";
@@ -104,9 +126,10 @@ try
           if( auto ec = server_->Write( id, sendBuff ) )
           {
                std::cerr << "Server: " << ec.message() << std::endl;
-               return;
+               break;
           }
      }
+     server_->Close( id );
 }
 catch( ... )
 {

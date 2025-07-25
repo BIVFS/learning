@@ -15,7 +15,7 @@ RawClient::~RawClient()
 {
 }
 
-std::error_code RawClient::Connect( const std::string& ip, uint16_t port )
+std::error_code RawClient::Connect()
 {
      return std::make_error_code( std::errc::not_supported );
 }

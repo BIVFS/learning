@@ -6,7 +6,6 @@
 #include "../i_client.h"
 
 #include <system_error>
-#include <string>
 #include <vector>
 
 #include "../i_connection_params.h"
@@ -20,7 +19,7 @@ public:
      UdpClient( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam );
      ~UdpClient();
 
-     virtual std::error_code Connect( const std::string& ip, uint16_t port ) override;
+     virtual std::error_code Connect() override;
 
      virtual std::error_code Read( std::vector<uint8_t>& buff ) override;
 

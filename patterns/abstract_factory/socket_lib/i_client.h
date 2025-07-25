@@ -4,7 +4,6 @@
 #define I_CLIENT_LIB_H__
 
 #include <system_error>
-#include <string>
 #include <vector>
 #include <atomic>
 #include <memory>
@@ -32,7 +31,7 @@ public:
           socket_ = -1;
      };
 
-     virtual std::error_code Connect( const std::string& ip, uint16_t port ) = 0;
+     virtual std::error_code Connect() = 0;
 
      virtual std::error_code Read( std::vector<uint8_t>& buff ) = 0;
 

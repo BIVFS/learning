@@ -30,7 +30,9 @@ public:
      virtual int GetSocketRwTimeout() override;
      virtual int GetSocketMaxRwAttempts() override;
 
-     virtual std::string NetIface() override;
+     virtual std::string GetIP() override;
+     virtual uint16_t GetPort() override;
+     virtual std::string GetNetIface() override;
 
      virtual std::error_code Clone() override;
      virtual std::error_code Initialize() override;

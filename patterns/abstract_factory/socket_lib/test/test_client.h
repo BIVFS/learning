@@ -21,10 +21,10 @@ public:
      explicit Client();
      ~Client();
 
-     std::error_code Start( const std::string& ip, uint16_t port ) noexcept;
+     std::error_code Start() noexcept;
      void Stop() noexcept;
 private:
-     void ConnectProcess( const std::string& ip, uint16_t port ) noexcept;
+     void ConnectProcess() noexcept;
 
 private:
      std::atomic_bool stop_;

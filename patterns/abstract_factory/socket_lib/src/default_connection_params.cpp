@@ -31,7 +31,9 @@ int DefaultConnectionParam::GetSocketMaxSrvConnection() { return MAX_SERVER_CONN
 int DefaultConnectionParam::GetSocketRwTimeout() { return SOCK_RW_TIMEOUT; }
 int DefaultConnectionParam::GetSocketMaxRwAttempts() { return MAX_RW_ATTEMPTS; }
 
-std::string DefaultConnectionParam::NetIface() { return "lo"; }
+std::string DefaultConnectionParam::GetIP() { return "127.0.0.1"; }
+uint16_t DefaultConnectionParam::GetPort() { return 5555; }
+std::string DefaultConnectionParam::GetNetIface() { return "lo"; }
 
 std::error_code DefaultConnectionParam::Clone() { return {}; }
 std::error_code DefaultConnectionParam::Initialize() { return {}; }

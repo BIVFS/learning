@@ -14,22 +14,27 @@ UdpServer::~UdpServer()
 {
 }
 
-std::error_code UdpServer::Listen( const std::string& ip, uint16_t port )
+std::error_code UdpServer::Listen() noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
-std::error_code UdpServer::Accept( SocketId& id )
+std::error_code UdpServer::Accept( SocketId& id ) noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
-std::error_code UdpServer::Read( SocketId id, std::vector<uint8_t>& buff )
+std::error_code UdpServer::Close( const SocketId& id ) noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }
 
-std::error_code UdpServer::Write( SocketId id, const std::vector<uint8_t>& buff )
+std::error_code UdpServer::Read( const SocketId id, std::vector<uint8_t>& buff ) noexcept
+{
+     return std::make_error_code( std::errc::not_supported );
+}
+
+std::error_code UdpServer::Write( const SocketId id, const std::vector<uint8_t>& buff ) noexcept
 {
      return std::make_error_code( std::errc::not_supported );
 }

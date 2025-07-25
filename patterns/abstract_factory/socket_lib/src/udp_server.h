@@ -20,13 +20,15 @@ public:
      UdpServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<IConnectionParam>& connectionParam );
      ~UdpServer();
 
-     virtual std::error_code Listen( const std::string& ip, uint16_t port ) override;
+     virtual std::error_code Listen() noexcept override;
 
-     virtual std::error_code Accept( SocketId& id ) override;
+     virtual std::error_code Accept( SocketId& id ) noexcept override;
 
-     virtual std::error_code Read( SocketId id, std::vector<uint8_t>& buff ) override;
+     virtual std::error_code Close( const SocketId& id ) noexcept override;
 
-     virtual std::error_code Write( SocketId id, const std::vector<uint8_t>& buff ) override;
+     virtual std::error_code Read( const SocketId id, std::vector<uint8_t>& buff ) noexcept override;
+
+     virtual std::error_code Write( const SocketId id, const std::vector<uint8_t>& buff ) noexcept override;
 
 private:
      std::map<SocketId, int> openConnections_;

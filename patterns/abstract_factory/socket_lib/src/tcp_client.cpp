@@ -23,8 +23,10 @@ namespace net_connection_lib
 namespace
 {
 
-//TODO нормальный комментарий
-// выставление блокирующего/неблокирующего сокета
+/// @brief Выставление блокирующего/неблокирующего обращения к дескриптору
+/// @param[in] fd - открытый файловый дескриптор
+/// @param[in] blocking - флаг блокирующее/неблокирующее поведение дескриптора при обращении к нему
+/// @return Код ошибки
 std::error_code SetSocketBlocking( int fd, bool blocking )
 {
      if( fd < 0 )
@@ -62,7 +64,7 @@ TcpClient::~TcpClient()
 {
 }
 
-std::error_code TcpClient::Connect( const std::string& ip, uint16_t port )
+std::error_code TcpClient::Connect()
 {
      errno = 0;
      if( -1 == ( socket_ = socket( AF_INET, SOCK_STREAM, 0 ) ) )
@@ -74,7 +76,7 @@ std::error_code TcpClient::Connect( const std::string& ip, uint16_t port )
      printf( "%s[%u]: Open socket: %d\n", __FILE__, __LINE__, socket_ );
 #endif // DEBUG
 
-     const std::string iface( connectionParam_->NetIface() );
+     const std::string iface( connectionParam_->GetNetIface() );
      errno = 0;
      if( 0 != setsockopt( socket_, SOL_SOCKET, SO_BINDTODEVICE, iface.c_str(), iface.size() + 1 ) )
      {
@@ -83,7 +85,8 @@ std::error_code TcpClient::Connect( const std::string& ip, uint16_t port )
      }
 
      address_.sin_family = AF_INET;
-     address_.sin_port = htons( port );
+     address_.sin_port = htons( connectionParam_->GetPort() );
+     const std::string ip( connectionParam_->GetIP() );
 
      errno = 0;
      if( -1 == inet_pton( AF_INET, ip.c_str(), &address_.sin_addr ) )
@@ -146,6 +149,7 @@ std::error_code TcpClient::Connect( const std::string& ip, uint16_t port )
           {
                break;
           }
+          sleep( 1 );
      }
 
      if( stop_ )
@@ -216,24 +220,27 @@ std::error_code TcpClient::Connect( const std::string& ip, uint16_t port )
           return { errnoLocal, std::system_category() };
      }
 #ifdef DEBUG
-     printf( "%s[%u]: Connected by socket: %d, ip: %s, port: %u\n", __FILE__, __LINE__, socket_, ip.c_str(), port );
+     printf( "%s[%u]: Connected by socket: %d, ip: %s, port: %u\n", __FILE__, __LINE__,
+                                             socket_, ip.c_str(), connectionParam_->GetPort() );
 #endif // DEBUG
 
      return {};
 }
 
-std::error_code TcpClient::Select()
+std::error_code TcpClient::Select( const int fd ) const
 {
      struct timeval tv{ 1, 0 };
      fd_set readSet;
 
-     FD_ZERO( &readSet );
-     FD_SET( socket_, &readSet);
-
      while( !stop_ )
      {
+          // Особенность select с его наборами дескрипторов в том, что при вызове select в наборах что-то
+          // изменяется и при повторном select нужно создавать инициализировать их заново
+          FD_ZERO( &readSet );
+          FD_SET( socket_, &readSet );
+
           errno = 0;
-          const int rv = select( socket_ + 1, &readSet, 0, 0, &tv );
+          const int rv = select( fd + 1, &readSet, 0, 0, &tv );
           const int errnoLocal = errno;
           switch( rv )
           {
@@ -262,7 +269,7 @@ std::error_code TcpClient::Read( std::vector<uint8_t>& buff )
 #ifdef DEBUG
      printf( "%s[%u]: Wait data to read\n", __FILE__, __LINE__ );
 #endif // DEBUG
-     if( auto ec = Select() )
+     if( auto ec = Select( socket_ ) )
      {
           return ec;
      }
@@ -291,7 +298,7 @@ std::error_code TcpClient::Read( std::vector<uint8_t>& buff )
 #ifdef DEBUG
      printf( "%s[%u]: Payload size: %lu\n", __FILE__, __LINE__, pldSize );
 #endif // DEBUG
-     if( auto ec = Select() )
+     if( auto ec = Select( socket_ ) )
      {
           return ec;
      }
@@ -354,7 +361,7 @@ std::error_code TcpClient::Write( const std::vector<uint8_t>& buff )
      return {};
 }
 
-std::error_code TcpClient::ValidateData( const std::vector<uint8_t>& data )
+std::error_code TcpClient::ValidateData( const std::vector<uint8_t>& data ) const
 {
 #ifdef DEBUG
      printf( "%s[%u]: Packet to validate (size = %lu):\n", __FILE__, __LINE__, data.size() );
