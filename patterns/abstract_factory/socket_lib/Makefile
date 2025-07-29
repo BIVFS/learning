@@ -18,7 +18,8 @@ SOURCES=src/connection.cpp \
 	src/udp_server.cpp \
 	src/simple_protocol.cpp \
 	src/default_connection_params.cpp \
-	src/prototypes/network_params.cpp
+	src/prototypes/network_params.cpp \
+	singleton/src/unique_factory.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
