@@ -15,7 +15,9 @@ Server::Server()
 : stop_( false )
 {
      namespace ncl = ::net_connection_lib;
-     auto connectionFactory = ncl::IConnectionFactory::CreateFactory( ncl::ConnectionType::Tcp );
+     //auto connectionFactory = ncl::IConnectionFactory::CreateFactory( ncl::ConnectionType::Tcp );
+     auto factory = ncl::Singleton::Instance( ncl::SINGLETON_TCP );
+     auto connectionFactory = dynamic_cast<ncl::IConnectionFactory*>( factory.get() );
 
      ncl::NetworkParams netParams;
      auto protocol = netParams.CreateProtocolPrototype( ncl::ProtocolType::Simple );

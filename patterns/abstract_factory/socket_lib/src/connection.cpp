@@ -17,10 +17,19 @@
 namespace net_connection_lib
 {
 
+namespace
+{
+static auto tcpFactory = IConnectionFactory::CreateFactory( ConnectionType::Tcp );
+static auto udpFactory = IConnectionFactory::CreateFactory( ConnectionType::Udp );
+static auto rawFactory = IConnectionFactory::CreateFactory( ConnectionType::Raw );
+};
+
 class TcpConnectionFactory final : public IConnectionFactory
 {
+private:
+     TcpConnectionFactory() = delete;
 public:
-     TcpConnectionFactory() = default;
+     TcpConnectionFactory( const std::string& name ) : IConnectionFactory( name ) {};
      ~TcpConnectionFactory() = default;
 
      virtual std::shared_ptr<IClient> CreateClient(
@@ -38,8 +47,10 @@ public:
 
 class UdpConnectionFactory final : public IConnectionFactory
 {
+private:
+     UdpConnectionFactory() = delete;
 public:
-     UdpConnectionFactory() = default;
+     UdpConnectionFactory( const std::string& name ) : IConnectionFactory( name ) {};
      ~UdpConnectionFactory() = default;
 
      virtual std::shared_ptr<IClient> CreateClient(
@@ -57,8 +68,10 @@ public:
 
 class RawConnectionFactory final : public IConnectionFactory
 {
+private:
+     RawConnectionFactory() = delete;
 public:
-     RawConnectionFactory() = default;
+     RawConnectionFactory( const std::string& name ) : IConnectionFactory( name ) {};
      ~RawConnectionFactory() = default;
 
      virtual std::shared_ptr<IClient> CreateClient(
@@ -74,13 +87,13 @@ public:
      }
 };
 
-std::unique_ptr<IConnectionFactory> IConnectionFactory::CreateFactory( ConnectionType type )
+std::shared_ptr<IConnectionFactory> IConnectionFactory::CreateFactory( ConnectionType type )
 {
      switch( type )
      {
-          case ConnectionType::Tcp: return std::make_unique<TcpConnectionFactory>();
-          case ConnectionType::Udp: return std::make_unique<UdpConnectionFactory>();
-          case ConnectionType::Raw: return std::make_unique<RawConnectionFactory>();
+          case ConnectionType::Tcp: return std::make_shared<TcpConnectionFactory>( SINGLETON_TCP );
+          case ConnectionType::Udp: return std::make_shared<UdpConnectionFactory>( SINGLETON_UDP );
+          case ConnectionType::Raw: return std::make_shared<RawConnectionFactory>( SINGLETON_RAW );
           default:
           {
                throw std::logic_error( "NOT IMPLEMENTED" );
