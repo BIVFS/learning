@@ -9,11 +9,11 @@ namespace net_connection_lib
 
 namespace
 {
-static std::shared_ptr<Singleton> instance_;
+static Singleton* instance_;
 static std::shared_ptr<std::map<std::string,Singleton*> > singletonTable_;
 }
 
-std::shared_ptr<Singleton> Singleton::Instance( const std::string& name )
+Singleton* Singleton::Instance( const std::string& name )
 {
      if( !instance_ )
      {
@@ -23,10 +23,10 @@ std::shared_ptr<Singleton> Singleton::Instance( const std::string& name )
      return instance_;
 }
 
-std::shared_ptr<Singleton> Singleton::LookUp( const std::string& name )
+Singleton* Singleton::LookUp( const std::string& name )
 try
 {
-     return std::shared_ptr<Singleton>( singletonTable_->at( name ) );
+     return singletonTable_->at( name );
 }
 catch( ... )
 {
@@ -49,8 +49,6 @@ try
           singletonTable_ = std::make_shared<std::map<std::string,Singleton*> >();
      }
 
-     //TODO
-     //singletonTable_[name] = shared_from_this();
      auto& ref = *singletonTable_;
      ref[name] = this;
      return {};
