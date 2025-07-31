@@ -29,9 +29,6 @@ enum class ConnectionType : uint8_t
 class IConnectionFactory : public Singleton
 {
 public:
-     // shared, потому что унаследованы от синглтона
-     static std::shared_ptr<IConnectionFactory> CreateFactory( ConnectionType type );
-
      virtual ~IConnectionFactory() = default;
 
      virtual std::shared_ptr<IClient> CreateClient(
