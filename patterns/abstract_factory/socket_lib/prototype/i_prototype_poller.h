@@ -17,7 +17,7 @@ private:
      Poller( Poller&& ) = delete;
 
 public:
-     explicit Poller( size_t timeout );
+     explicit Poller( size_t timeout ) : fd_( -1 ), timeout_( timeout ) {}
      virtual ~Poller() = default;
 
      Poller& operator=( const Poller& );
