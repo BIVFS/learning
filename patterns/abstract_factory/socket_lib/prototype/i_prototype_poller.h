@@ -18,12 +18,17 @@ private:
 
 public:
      explicit Poller( size_t timeout );
-     virtua ~Poller() = default;
+     virtual ~Poller() = default;
 
      Poller& operator=( const Poller& );
      Poller( const Poller& );
      virtual std::shared_ptr<Poller> Clone() const noexcept;
-     virtual std::error_code Initialize() noexcept;
+     virtual std::error_code Initialize( int fd ) noexcept;
+     virtual std::error_code Poll() noexcept;
+
+private:
+     int fd_;
+     size_t timeout_;
 };
 
 } // namespace net_connection_lib
