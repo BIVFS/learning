@@ -21,7 +21,8 @@ SOURCES=factory/connection.cpp \
 	prototype/simple_protocol.cpp \
 	prototype/default_connection_params.cpp \
 	prototype/network_params.cpp \
-	singleton/unique_factory.cpp
+	singleton/unique_factory.cpp \
+        prototype/prototype_poller.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 

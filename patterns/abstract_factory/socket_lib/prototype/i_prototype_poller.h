@@ -1,0 +1,36 @@
+#pragma once
+
+#ifndef PROTORYPE_POLL_LIB_H__
+#define PROTORYPE_POLL_LIB_H__
+
+#include <memory>
+#include <system_error>
+
+namespace net_connection_lib
+{
+
+class Poller
+{
+private:
+     Poller() = delete;
+     Poller& operator=( Poller&& ) = delete;
+     Poller( Poller&& ) = delete;
+
+public:
+     explicit Poller( size_t timeout ) : fd_( -1 ), timeout_( timeout ) {}
+     virtual ~Poller() = default;
+
+     Poller& operator=( const Poller& );
+     Poller( const Poller& );
+     virtual std::shared_ptr<Poller> Clone() const noexcept;
+     virtual std::error_code Initialize( int fd ) noexcept;
+     virtual std::error_code Poll() noexcept;
+
+private:
+     int fd_;
+     size_t timeout_;
+};
+
+} // namespace net_connection_lib
+
+#endif // PROTORYPE_POLL_LIB_H__
