@@ -9,17 +9,17 @@ CFLAGS=-c -fPIC -std=c++14 -Wall -Wextra -pedantic -g -O0 -I. -DDEBUG # -Werror
 LFLAGS =
 LIBDEP = -lz
 
-SOURCES=src/connection.cpp \
-	src/raw_client.cpp \
-	src/raw_server.cpp \
-	src/tcp_client.cpp \
-	src/tcp_server.cpp \
-	src/udp_client.cpp \
-	src/udp_server.cpp \
-	src/simple_protocol.cpp \
-	src/default_connection_params.cpp \
-	src/prototypes/network_params.cpp \
-	singleton/src/unique_factory.cpp
+SOURCES=factory/connection.cpp \
+	common/raw_client.cpp \
+	common/raw_server.cpp \
+	common/tcp_client.cpp \
+	common/tcp_server.cpp \
+	common/udp_client.cpp \
+	common/udp_server.cpp \
+	prototype/simple_protocol.cpp \
+	prototype/default_connection_params.cpp \
+	prototype/network_params.cpp \
+	singleton/unique_factory.cpp
 
 OBJECTS=$(SOURCES:.cpp=.o)
 
@@ -32,4 +32,4 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $< -o $@
 
 clean:
-	rm -f *.o src/*.o $(TARGET)
+	rm -f *.o common/*.o factory/*.o prototype/*.o singleton/*.o $(TARGET)

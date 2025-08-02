@@ -1,9 +1,9 @@
 #include <memory>
 #include <stdexcept>
 
-#include "../../network_params.h"
-#include "../simple_protocol.h"
-#include "../default_connection_params.h"
+#include "../network_params.h"
+#include "simple_protocol.h"
+#include "default_connection_params.h"
 
 namespace net_connection_lib
 {

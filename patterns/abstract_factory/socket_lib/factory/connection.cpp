@@ -1,13 +1,13 @@
 #include "../i_connection.h"
 
-#include "tcp_client.h"
-#include "tcp_server.h"
+#include "../common/tcp_client.h"
+#include "../common/tcp_server.h"
 
-#include "udp_client.h"
-#include "udp_server.h"
+#include "../common/udp_client.h"
+#include "../common/udp_server.h"
 
-#include "raw_client.h"
-#include "raw_server.h"
+#include "../common/raw_client.h"
+#include "../common/raw_server.h"
 
 #include "../i_protocol.h"
 
