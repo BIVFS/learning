@@ -2,15 +2,13 @@
 #ifndef SINGLETON_UNIQUE_FACTOTY_LIB_H__
 #define SINGLETON_UNIQUE_FACTOTY_LIB_H__
 
-#include <memory>
 #include <system_error>
 #include <map>
 
 namespace net_connection_lib
 {
 
-     //TODO
-class Singleton // : public std::enable_shared_from_this<Singleton>
+class Singleton
 {
 private:
      Singleton() = delete;
@@ -20,7 +18,7 @@ private:
      Singleton& operator=( Singleton&& ) = delete;
 
 public:
-     static std::shared_ptr<Singleton> Instance( const std::string& name );
+     static Singleton* Instance( const std::string& name );
 
      explicit Singleton( const std::string& name );
 
@@ -30,7 +28,7 @@ protected:
      std::error_code Register( const std::string& name );
 
 private:
-     static std::shared_ptr<Singleton> LookUp( const std::string& name );
+     static Singleton* LookUp( const std::string& name );
 
 //private:
      //static std::shared_ptr<Singleton> instance_;

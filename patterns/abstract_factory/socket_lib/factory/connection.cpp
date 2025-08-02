@@ -19,10 +19,14 @@ namespace net_connection_lib
 
 namespace
 {
-static auto tcpFactory = IConnectionFactory::CreateFactory( ConnectionType::Tcp );
-static auto udpFactory = IConnectionFactory::CreateFactory( ConnectionType::Udp );
-static auto rawFactory = IConnectionFactory::CreateFactory( ConnectionType::Raw );
-};
+
+std::shared_ptr<IConnectionFactory> CreateFactory( ConnectionType type );
+
+static auto tcpFactory = CreateFactory( ConnectionType::Tcp );
+static auto udpFactory = CreateFactory( ConnectionType::Udp );
+static auto rawFactory = CreateFactory( ConnectionType::Raw );
+
+}
 
 class TcpConnectionFactory final : public IConnectionFactory
 {
@@ -87,7 +91,10 @@ public:
      }
 };
 
-std::shared_ptr<IConnectionFactory> IConnectionFactory::CreateFactory( ConnectionType type )
+namespace
+{
+
+std::shared_ptr<IConnectionFactory> CreateFactory( ConnectionType type )
 {
      switch( type )
      {
@@ -99,6 +106,8 @@ std::shared_ptr<IConnectionFactory> IConnectionFactory::CreateFactory( Connectio
                throw std::logic_error( "NOT IMPLEMENTED" );
           }
      }
+}
+
 }
 
 } // namespace net_connection_lib
