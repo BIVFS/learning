@@ -1,40 +1,75 @@
 #include "i_prototype_poller.h"
 
+#include <atomic>
+#include <memory>
+
 namespace net_connection_lib
 {
 
-class Select final : public Poller
+class SelectPoll final : public Poller
 {
 private:
-     Select() = delete;
-     Select& operator=( Select&& ) = delete;
-     Select( Select&& ) = delete;
+     SelectPoll() = delete;
+     SelectPoll& operator=( SelectPoll&& ) = delete;
+     SelectPoll( SelectPoll&& ) = delete;
 
 public:
-     explicit Select( size_t timeout );
-     ~Select() = default;
+     explicit SelectPoll( size_t timeout );
+     ~SelectPoll() = default;
 
-     virtual std::shared_ptr<Select> Clone() const override noexcept;
-     virtual std::error_code Initialize( int fd ) override noexcept;
-     virtual std::error_code Poll() noexcept;
+     virtual std::error_code Poll( int fd ) noexcept override;
 
 private:
-     size_t timeout_;
+     std::atomic_bool stop_;
 };
 
-Select::Select( size_t timeout )
-: fd_( -1 )
-, timeout_( timeout )
+std::shared_ptr<Poller> MakeSelect( size_t timeout )
+{
+     return std::make_shared<SelectPoll>( timeout );
+}
+
+SelectPoll::SelectPoll( size_t timeout )
+: Poller( timeout )
 {
 }
 
-std::shared_ptr<Select> Select::Clone()
+std::error_code SelectPoll::Poll( int fd ) noexcept
+try
 {
-     return std::make_shared_ptr<Select>( timeout_ );
-}
+     struct timeval tv{ static_cast<time_t>( timeout_ ), 0 };
+     fd_set readSet;
+     {
+          while( !stop_ )
+          {
+               // Особенность select с его наборами дескрипторов в том, что при вызове select в наборах что-то
+               // изменяется и при повторном select нужно создавать инициализировать их заново
+               FD_ZERO( &readSet );
+               FD_SET( fd, &readSet );
 
-std::error_code Select::Initialize( int fd )
+               errno = 0;
+               const int rv = select( fd + 1, &readSet, 0, 0, &tv );
+               const int errnoLocal = errno;
+               switch( rv )
+               {
+                    case -1:  return { errnoLocal, std::system_category() };
+                    case 0:   continue;
+                    default:  break;
+               }
+
+               break;
+          }
+     }
+
+     if( stop_ )
+     {
+          return std::make_error_code( std::errc::operation_canceled );
+     }
+
+     return {};
+}
+catch( ... )
 {
+     return std::make_error_code( std::errc::io_error );
 }
 
 } // namespace net_connection_lib

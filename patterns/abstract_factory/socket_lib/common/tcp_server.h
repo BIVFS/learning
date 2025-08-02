@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #ifndef TCP_SERVER_LIB_H__
 #define TCP_SERVER_LIB_H__
 
@@ -15,6 +16,7 @@
 #include <netinet/in.h>
 
 #include "../i_connection_params.h"
+#include "../prototype/i_prototype_poller.h"
 
 namespace net_connection_lib
 {
@@ -59,6 +61,8 @@ private:
      struct sockaddr_in address_;
 
      std::mutex connectionMgmt_;
+
+     std::shared_ptr<Poller> poll_;
 };
 
 } // net_connection_lib

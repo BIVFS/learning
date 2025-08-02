@@ -9,6 +9,12 @@
 namespace net_connection_lib
 {
 
+enum class PollType : uint8_t
+{
+     Select = 0,
+     Poll
+};
+
 class Poller
 {
 private:
@@ -17,17 +23,20 @@ private:
      Poller( Poller&& ) = delete;
 
 public:
-     explicit Poller( size_t timeout ) : fd_( -1 ), timeout_( timeout ) {}
+     static std::shared_ptr<Poller> MakePoller( PollType type, size_t timeout ) noexcept;
+
      virtual ~Poller() = default;
 
      Poller& operator=( const Poller& );
      Poller( const Poller& );
      virtual std::shared_ptr<Poller> Clone() const noexcept;
-     virtual std::error_code Initialize( int fd ) noexcept;
-     virtual std::error_code Poll() noexcept;
+     virtual std::error_code Initialize() noexcept;
+     virtual std::error_code Poll( int fd ) noexcept;
 
-private:
-     int fd_;
+protected:
+     explicit Poller( size_t timeout ) : timeout_( timeout ) {}
+
+protected:
      size_t timeout_;
 };
 

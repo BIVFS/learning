@@ -47,6 +47,7 @@ TcpServer::TcpServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<ICon
 : IServer( protocol, connectionParam )
 {
      std::memset( &address_, 0, sizeof( address_ ) );
+     poll_ = Poller::MakePoller( PollType::Select, 1 );
 }
 
 TcpServer::~TcpServer()
@@ -142,7 +143,8 @@ try
 #ifdef DEBUG
      printf( "%s[%u]: Wait connection on socket: %d\n", __FILE__, __LINE__, fd );
 #endif // DEBUG
-     if( auto ec = Select( fd ) )
+     auto slct = poll_->Clone();
+     if( auto ec = slct->Poll( fd ) )
      {
           return ec;
      }
@@ -289,7 +291,8 @@ try
      printf( "%s[%u]: Wait data to read on socket %d (id = %u)\n", __FILE__, __LINE__, fd, id );
 #endif // DEBUG
 
-     if( auto ec = Select( fd ) )
+     auto slct = poll_->Clone();
+     if( auto ec = slct->Poll( fd ) )
      {
           return ec;
      }
@@ -319,7 +322,7 @@ try
      printf( "%s[%u]: Payload size: %lu\n", __FILE__, __LINE__, pldSize );
 #endif // DEBUG
 
-     if( auto ec = Select( fd ) )
+     if( auto ec = slct->Poll( fd ) )
      {
           return ec;
      }
