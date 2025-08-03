@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 
 #include "../i_connection_params.h"
+#include "../prototype/i_prototype_poller.h"
 
 namespace net_connection_lib
 {
@@ -46,6 +47,8 @@ private:
 
 private:
      struct sockaddr_in address_;
+
+     std::shared_ptr<Poller> poll_;
 };
 
 } // namespace net_connection_lib

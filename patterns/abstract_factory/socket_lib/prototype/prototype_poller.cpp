@@ -2,12 +2,12 @@
 #include <memory>
 #include <system_error>
 
-#include "select.h"
+#include "src/select.h"
 
 namespace net_connection_lib
 {
 
-std::shared_ptr<Poller> MakePoller( PollType type, size_t timeout ) noexcept
+std::shared_ptr<Poller> Poller::MakePoller( PollType type, size_t timeout ) noexcept
 try
 {
      switch( type )
@@ -44,8 +44,9 @@ Poller::Poller( const Poller& other )
 
 std::shared_ptr<Poller> Poller::Clone() const noexcept
 {
-     const Poller& ref = *this;
-     return std::make_shared<Poller>( ref );
+     auto ptr = this->Allocate();
+     ptr->timeout_ = this->timeout_;
+     return ptr;
 }
 
 std::error_code Poller::Initialize() noexcept

@@ -58,6 +58,7 @@ TcpClient::TcpClient( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<ICon
 : IClient( protocol, connectionParam )
 {
      std::memset( &address_, 0, sizeof( address_ ) );
+     poll_ = Poller::MakePoller( PollType::Select, 1 );
 }
 
 TcpClient::~TcpClient()
@@ -269,7 +270,8 @@ std::error_code TcpClient::Read( std::vector<uint8_t>& buff )
 #ifdef DEBUG
      printf( "%s[%u]: Wait data to read\n", __FILE__, __LINE__ );
 #endif // DEBUG
-     if( auto ec = Select( socket_ ) )
+     auto slct = poll_->Clone();
+     if( auto ec = slct->Poll( socket_ ) )
      {
           return ec;
      }
@@ -298,7 +300,7 @@ std::error_code TcpClient::Read( std::vector<uint8_t>& buff )
 #ifdef DEBUG
      printf( "%s[%u]: Payload size: %lu\n", __FILE__, __LINE__, pldSize );
 #endif // DEBUG
-     if( auto ec = Select( socket_ ) )
+     if( auto ec = slct->Poll( socket_ ) )
      {
           return ec;
      }

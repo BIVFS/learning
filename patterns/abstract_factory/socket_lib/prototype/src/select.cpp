@@ -1,7 +1,9 @@
-#include "i_prototype_poller.h"
+#include "../i_prototype_poller.h"
 
 #include <atomic>
 #include <memory>
+
+#include "select.h"
 
 namespace net_connection_lib
 {
@@ -17,6 +19,7 @@ public:
      explicit SelectPoll( size_t timeout );
      ~SelectPoll() = default;
 
+     virtual std::shared_ptr<Poller> Allocate() const noexcept override;
      virtual std::error_code Poll( int fd ) noexcept override;
 
 private:
@@ -25,12 +28,23 @@ private:
 
 std::shared_ptr<Poller> MakeSelect( size_t timeout )
 {
+     //return new SelectPoll( timeout );
      return std::make_shared<SelectPoll>( timeout );
 }
 
 SelectPoll::SelectPoll( size_t timeout )
 : Poller( timeout )
 {
+}
+
+std::shared_ptr<Poller> SelectPoll::Allocate() const noexcept
+try
+{
+     return std::make_shared<SelectPoll>( timeout_ );
+}
+catch( ... )
+{
+     return nullptr;
 }
 
 std::error_code SelectPoll::Poll( int fd ) noexcept

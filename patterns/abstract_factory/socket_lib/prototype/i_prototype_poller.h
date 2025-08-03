@@ -34,6 +34,9 @@ public:
      virtual std::error_code Poll( int fd ) noexcept;
 
 protected:
+     virtual std::shared_ptr<Poller> Allocate() const noexcept = 0;
+
+protected:
      explicit Poller( size_t timeout ) : timeout_( timeout ) {}
 
 protected:

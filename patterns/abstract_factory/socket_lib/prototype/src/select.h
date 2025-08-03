@@ -3,7 +3,7 @@
 #ifndef SELECT_POLL_LIB_H__
 #define SELECT_POLL_LIB_H__
 
-#include "i_prototype_poller.h"
+#include "../i_prototype_poller.h"
 
 #include <memory>
 
