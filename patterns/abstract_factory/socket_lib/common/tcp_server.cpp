@@ -47,7 +47,7 @@ TcpServer::TcpServer( std::unique_ptr<IProtocol>& protocol, std::unique_ptr<ICon
 : IServer( protocol, connectionParam )
 {
      std::memset( &address_, 0, sizeof( address_ ) );
-     poll_ = Poller::MakePoller( PollType::Select, 1 );
+     poll_ = Poller::MakePoller( PollType::Poll, 1 );
 }
 
 TcpServer::~TcpServer()

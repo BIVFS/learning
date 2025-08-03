@@ -28,7 +28,6 @@ private:
 
 std::shared_ptr<Poller> MakeSelect( size_t timeout )
 {
-     //return new SelectPoll( timeout );
      return std::make_shared<SelectPoll>( timeout );
 }
 

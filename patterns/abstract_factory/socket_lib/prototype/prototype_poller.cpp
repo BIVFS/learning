@@ -3,6 +3,7 @@
 #include <system_error>
 
 #include "src/select.h"
+#include "src/poll_wrapper.h"
 
 namespace net_connection_lib
 {
@@ -17,6 +18,9 @@ try
                return MakeSelect( timeout );
           }
           case PollType::Poll:
+          {
+               return MakePoll( timeout );
+          }
           default:
           {
                return nullptr;
