@@ -47,8 +47,6 @@ private:
 
      std::error_code CheckConnection( const SocketId id, bool storeLock );
 
-     std::error_code Select( const int fd ) const;
-
      std::error_code ValidateData( const std::vector<uint8_t>& data ) const;
 
 private:

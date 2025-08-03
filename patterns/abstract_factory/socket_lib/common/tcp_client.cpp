@@ -228,39 +228,6 @@ std::error_code TcpClient::Connect()
      return {};
 }
 
-std::error_code TcpClient::Select( const int fd ) const
-{
-     struct timeval tv{ 1, 0 };
-     fd_set readSet;
-
-     while( !stop_ )
-     {
-          // Особенность select с его наборами дескрипторов в том, что при вызове select в наборах что-то
-          // изменяется и при повторном select нужно создавать инициализировать их заново
-          FD_ZERO( &readSet );
-          FD_SET( socket_, &readSet );
-
-          errno = 0;
-          const int rv = select( fd + 1, &readSet, 0, 0, &tv );
-          const int errnoLocal = errno;
-          switch( rv )
-          {
-               case -1:  return { errnoLocal, std::system_category() };
-               case 0:   continue;
-               default:  break;
-          }
-
-          break;
-     }
-
-     if( stop_ )
-     {
-          return std::make_error_code( std::errc::operation_canceled );
-     }
-
-     return {};
-}
-
 std::error_code TcpClient::Read( std::vector<uint8_t>& buff )
 {
      if( !IsEstablished() )

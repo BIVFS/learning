@@ -50,6 +50,10 @@ catch( ... )
 std::error_code SelectPoll::Poll( int fd ) noexcept
 try
 {
+     if( 0 > fd )
+     {
+          return std::make_error_code( std::errc::bad_file_descriptor );
+     }
      struct timeval tv{ static_cast<time_t>( timeout_ ), 0 };
      fd_set readSet;
      {
