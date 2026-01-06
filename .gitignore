@@ -1,3 +1,5 @@
 *.o
 *.sw*
 *.png
+main
+*.so
