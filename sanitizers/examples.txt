@@ -1,0 +1,14 @@
+Анализ утечек памяти в ./main:
+valgrind --leak-check=full ./main
+
+Анализ обращений к неинициализированной памяти в ./main:
+valgrind --track-origins=yes ./main
+
+Анализ обращений к неинициализированной памяти в ./main с запуском сервера GDB и остановом при нахождении ошибок
+valgrind --vgdb=yes --vgdb-error=1 --track-origins=yes ./main
+
+Анализ стека вызовов в ./main:
+valgrind --tool=callgrind --separate-threads=yes --instr-atstart=no ./main
+
+Анализ наличия взаимоблокировок и гонок данных в ./main:
+valgrind --tool=helgrind ./main
